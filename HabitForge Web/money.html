@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Мой сайт с оплатой</title>
+    <style>
+        body {
+            font-family: Arial;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .card {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            border: 2px solid #4CAF50;
+        }
+        .btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 18px;
+            cursor: pointer;
+            margin: 10px;
+            width: 100%;
+        }
+        .wallet-info {
+            background: #FFEB3B;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎮 Мой игровой сайт</h1>
+    
+    <div class="card">
+        <h2>💰 Мой баланс: <span id="myMoney">1000</span> ₽</h2>
+        
+        <div class="wallet-info">
+            <strong>Ваш номер кошелька:</strong>
+            <input type="text" id="walletNumber" value="410011234567890" style="width: 200px;">
+            <button onclick="saveWallet()">Сохранить</button>
+        </div>
+        
+        <h3>Пополнить баланс:</h3>
+        
+        <button class="btn" onclick="addMoney(100)">
+            +100 ₽ (пополнить)
+        </button>
+        
+        <button class="btn" onclick="addMoney(500)">
+            +500 ₽ (пополнить)
+        </button>
+        
+        <button class="btn" onclick="addMoney(1000)">
+            +1000 ₽ (пополнить)
+        </button>
+        
+        <p style="color: #666; font-size: 14px;">
+            💡 После оплаты деньги придут на ваш ЮMoney кошелёк
+        </p>
+    </div>
+    
+    <div class="card">
+        <h3>🎯 Как это работает:</h3>
+        <ol>
+            <li>Нажмите кнопку (например, +500 ₽)</li>
+            <li>Откроется ЮMoney с оплатой</li>
+            <li>Оплатите картой 500 ₽</li>
+            <li>Деньги придут на ВАШ кошелёк</li>
+            <li>Баланс на сайте увеличится</li>
+        </ol>
+    </div>
+
+    <script>
+        // Номер кошелька (ЗАМЕНИТЕ НА СВОЙ!)
+        let myWallet = '4100119431678402';
+        
+        // Баланс пользователя
+        let userBalance = 1000;
+        
+        // Сохранить номер кошелька
+        function saveWallet() {
+            myWallet = document.getElementById('walletNumber').value;
+            alert('Номер кошелька сохранён: ' + myWallet);
+        }
+        
+        // Пополнить баланс
+        function addMoney(amount) {
+            // Создаём ссылку для оплаты
+            const payLink = `https://yoomoney.ru/quickpay/confirm?receiver=${myWallet}&sum=${amount}&formcomment=Пополнение+баланса`;
+            
+            // Открываем в новом окне
+            const newWindow = window.open(payLink, '_blank');
+            
+            // Сообщение
+            alert(`💳 Оплатите ${amount} ₽ в открывшемся окне\n💰 Деньги придут на кошелёк: ${myWallet}`);
+            
+            // Спросить через 10 секунд, оплатил ли
+            setTimeout(() => {
+                if (confirm('Вы уже оплатили?')) {
+                    // Увеличиваем баланс
+                    userBalance += amount;
+                    document.getElementById('myMoney').textContent = userBalance;
+                    alert(`✅ Баланс пополнен на ${amount} ₽!\nТеперь у вас: ${userBalance} ₽`);
+                }
+            }, 10000);
+        }
+        
+        // Показываем инструкцию при загрузке
+        window.onload = function() {
+            alert('💡 Замените номер кошелька на СВОЙ из ЮMoney!');
+        }
+    </script>
+</body>
+</html>
