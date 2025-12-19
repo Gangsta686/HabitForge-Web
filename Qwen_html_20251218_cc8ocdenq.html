@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HabitForge — Кузница Привычек</title>
+  <meta name="description" content="Игровой трекер привычек с социальной ответственностью">
+  <!-- Иконка для "установки" на телефон -->
+  <link rel="manifest" href="#"/>
+  <style>
+    :root {
+      --primary: #2c6fbb;
+      --danger: #d32f2f;
+      --success: #388e3c;
+      --light: #f9f9f9;
+      --dark: #333;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.6;
+      background-color: var(--light);
+      color: var(--dark);
+      padding: 16px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    header {
+      text-align: center;
+      margin: 20px 0;
+    }
+    h1 {
+      color: var(--primary);
+      margin-bottom: 8px;
+    }
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      margin: 16px 0;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    button {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      width: 100%;
+      margin: 8px 0;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    button.danger {
+      background: var(--danger);
+    }
+    button.success {
+      background: var(--success);
+    }
+    input, select {
+      width: 100%;
+      padding: 12px;
+      margin: 8px 0;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+    .progress {
+      height: 12px;
+      background: #eee;
+      border-radius: 6px;
+      margin: 12px 0;
+      overflow: hidden;
+    }
+    .progress-bar {
+      height: 100%;
+      background: var(--primary);
+      transition: width 0.3s;
+    }
+    .hidden {
+      display: none;
+    }
+    footer {
+      text-align: center;
+      margin-top: 30px;
+      color: #888;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>🔥 HabitForge</h1>
+    <p>Кузница привычек с социальной ответственностью</p>
+  </header>
+
+  <!-- Экран: Нет активного челленджа -->
+  <div id="screen-start" class="card">
+    <h2>Начните свой челлендж!</h2>
+    <p>Поставьте цель, назначьте "ставку" — и докажите себе, что вы сильнее!</p>
+    <button id="btn-new">➕ Новая привычка</button>
+  </div>
+
+  <!-- Экран: Создание челленджа -->
+  <div id="screen-create" class="card hidden">
+    <h2>Создайте челлендж</h2>
+    <input type="text" id="habit-input" placeholder="Например: Бегать 3 раза в неделю" maxlength="100">
+    <input type="number" id="bet-input" placeholder="Ваша ставка (₽)" min="0" value="500">
+    <select id="mode-select">
+      <option value="charity">В случае срыва — на благотворительность</option>
+      <option value="pot">В случае срыва — в общий котёл (розыгрыш)</option>
+    </select>
+    <button id="btn-create-confirm">✅ Начать челлендж</button>
+    <button id="btn-create-cancel">Отмена</button>
+  </div>
+
+  <!-- Экран: Активный челлендж -->
+  <div id="screen-active" class="card hidden">
+    <h2 id="active-habit-title"></h2>
+    <p>Ставка: <strong id="active-bet"></strong> ₽</p>
+    <p>Режим: <span id="active-mode"></span></p>
+    
+    <div>Дней: <span id="days-done">0</span> / <span id="days-total">7</span></div>
+    <div class="progress">
+      <div class="progress-bar" id="progress-bar" style="width: 0%"></div>
+    </div>
+
+    <button id="btn-mark-done" class="success">✅ Выполнил сегодня</button>
+    <button id="btn-give-up" class="danger">💀 Сдаться (отправить ставку)</button>
+    <button id="btn-active-cancel">Назад</button>
+  </div>
+
+  <!-- Экран: Итог -->
+  <div id="screen-result" class="card hidden">
+    <h2 id="result-title"></h2>
+    <p id="result-text"></p>
+    <button id="btn-new-again">Начать новый челлендж</button>
+  </div>
+
+  <footer>
+    Ваши данные хранятся только на этом устройстве.
+  </footer>
+
+  <script>
+    // === Хранилище ===
+    let currentHabit = JSON.parse(localStorage.getItem('habitforge-habit')) || null;
+
+    // === DOM элементы ===
+    const screens = {
+      start: document.getElementById('screen-start'),
+      create: document.getElementById('screen-create'),
+      active: document.getElementById('screen-active'),
+      result: document.getElementById('screen-result'),
+    };
+    const btnNew = document.getElementById('btn-new');
+    const btnCreateConfirm = document.getElementById('btn-create-confirm');
+    const btnCreateCancel = document.getElementById('btn-create-cancel');
+    const btnMarkDone = document.getElementById('btn-mark-done');
+    const btnGiveUp = document.getElementById('btn-give-up');
+    const btnActiveCancel = document.getElementById('btn-active-cancel');
+    const btnNewAgain = document.getElementById('btn-new-again');
+
+    // === Переключение экранов ===
+    function showScreen(name) {
+      Object.values(screens).forEach(s => s.classList.add('hidden'));
+      screens[name].classList.remove('hidden');
+    }
+
+    // === Инициализация ===
+    function init() {
+      if (currentHabit && currentHabit.isActive) {
+        renderActiveHabit();
+        showScreen('active');
+      } else {
+        showScreen('start');
+      }
+    }
+
+    // === Создание челленджа ===
+    btnNew.onclick = () => showScreen('create');
+    btnCreateCancel.onclick = () => showScreen('start');
+    btnActiveCancel.onclick = () => showScreen('start');
+
+    btnCreateConfirm.onclick = () => {
+      const habitText = document.getElementById('habit-input').value.trim();
+      const bet = parseInt(document.getElementById('bet-input').value) || 0;
+      const mode = document.getElementById('mode-select').value;
+
+      if (!habitText) {
+        alert('Введите цель!');
+        return;
+      }
+
+      currentHabit = {
+        title: habitText,
+        bet,
+        mode,
+        startDate: new Date().toISOString().split('T')[0],
+        daysDone: 0,
+        totalDays: 7,
+        isActive: true,
+        lastMarked: null, // чтобы не отметить дважды в день
+      };
+      saveHabit();
+      renderActiveHabit();
+      showScreen('active');
+    };
+
+    // === Отметить выполнение ===
+    btnMarkDone.onclick = () => {
+      const today = new Date().toISOString().split('T')[0];
+      if (currentHabit.lastMarked === today) {
+        alert('Вы уже отметили сегодня!');
+        return;
+      }
+      currentHabit.daysDone++;
+      currentHabit.lastMarked = today;
+      if (currentHabit.daysDone >= currentHabit.totalDays) {
+        // Успех!
+        showResult(true);
+        currentHabit.isActive = false;
+      } else {
+        saveHabit();
+        renderActiveHabit();
+      }
+    };
+
+    // === Сдаться ===
+    btnGiveUp.onclick = () => {
+      if (confirm('Вы уверены? Ставка будет "потеряна".')) {
+        showResult(false);
+        currentHabit.isActive = false;
+        saveHabit();
+      }
+    };
+
+    // === Показать итог ===
+    function showResult(success) {
+      const title = success ? '🎉 Успех!' : '💀 Срыв';
+      let text = success
+        ? `Вы завершили челлендж «${currentHabit.title}»!`
+        : `Челлендж не завершён. ${currentHabit.bet} ₽ (виртуально) `;
+      
+      if (!success) {
+        text += currentHabit.mode === 'charity'
+          ? 'отправлены на благотворительность. ❤️'
+          : 'ушли в общий котёл. 🎲';
+      }
+
+      document.getElementById('result-title').textContent = title;
+      document.getElementById('result-text').textContent = text;
+      showScreen('result');
+    }
+
+    btnNewAgain.onclick = () => {
+      currentHabit = null;
+      localStorage.removeItem('habitforge-habit');
+      showScreen('start');
+    };
+
+    // === Отображение активного челленджа ===
+    function renderActiveHabit() {
+      document.getElementById('active-habit-title').textContent = currentHabit.title;
+      document.getElementById('active-bet').textContent = currentHabit.bet;
+      document.getElementById('active-mode').textContent =
+        currentHabit.mode === 'charity' ? 'Благотворительность' : 'Общий котёл';
+      
+      const done = currentHabit.daysDone;
+      const total = currentHabit.totalDays;
+      document.getElementById('days-done').textContent = done;
+      document.getElementById('days-total').textContent = total;
+      document.getElementById('progress-bar').style.width = (done / total * 100) + '%';
+    }
+
+    // === Сохранение ===
+    function saveHabit() {
+      localStorage.setItem('habitforge-habit', JSON.stringify(currentHabit));
+    }
+
+    // === Запуск ===
+    init();
+  </script>
+</body>
+</html>
